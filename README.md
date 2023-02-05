@@ -34,3 +34,6 @@ monitorAll(options);
  - `interval`: in milliseconds to monitor and print the resource consumption: default 5000
  - `transformMemoryValue`: function to apply some extra calc or transformation on memory measurements: default `(value) => (value / 1000000) + "Mb"`
  - `transformCpuValue`: function to apply some extra calc or transformation on CPU measurements: default `(_) => _`
+
+# Source
+[EduardoPetrini/monitor-resources-js](https://github.com/EduardoPetrini/monitor-resources-js)
