@@ -39,7 +39,7 @@ export const resourceMonitor = async ({ outputStream, interval = 1000, firstMeas
 
     const outputCurrent = Object.keys(currentResource)
       .reduce((previousText, resourceField) => {
-        return `${previousText}${transformValue(resourceDiff[resourceField])},`;
+        return `${previousText}${transformValue(currentResource[resourceField])},`;
       }, '')
       .slice(0, -1);
 
@@ -60,7 +60,7 @@ export const monitorMemory = async ({ interval = 5000, transformMemoryValue } = 
   let transformValue = transformMemoryValue;
 
   if (!transformMemoryValue) {
-    transformValue = value => `${value / 1000000}Mb`;
+    transformValue = value => value / 1000000;
   }
 
   const outputStream = await getOutputStream({ type: 'mem' });
