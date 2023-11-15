@@ -1,5 +1,23 @@
-const resourceMonitor = ({ interval = 10000, firstMeasure, processFunction, transformValue = (_) => _ }) => {
+import { getOutputStream } from './output.js';
+
+export const resourceMonitor = async ({ outputStream, interval = 1000, firstMeasure, processFunction, transformValue = _ => _ }) => {
   const { name } = processFunction;
+
+  let now = new Date().toLocaleString();
+  const headers = Object.keys(firstMeasure)
+    .reduce((previousText, resourceField) => {
+      return `${previousText}${resourceField},`;
+    }, '')
+    .slice(0, -1);
+
+  const first = Object.keys(firstMeasure)
+    .reduce((previousText, resourceField) => {
+      return `${previousText}${transformValue(firstMeasure[resourceField])},`;
+    }, '')
+    .slice(0, -1);
+
+  outputStream.write(`type,ts,${headers}\n`);
+  outputStream.write(`current,"${now}",${first}\n`);
   setInterval(() => {
     const currentResource = processFunction();
     const resourceDiff = {
@@ -11,45 +29,51 @@ const resourceMonitor = ({ interval = 10000, firstMeasure, processFunction, tran
       }, {}),
     };
 
-    const outputDiff = Object.keys(resourceDiff).reduce((previousText, resourceField) => {
-      return `${previousText}${resourceField}: ${transformValue(resourceDiff[resourceField])} | `;
-    }, "");
+    now = new Date().toLocaleString();
 
-    const outputCurrent = Object.keys(currentResource).reduce((previousText, resourceField) => {
-      return `${previousText}${resourceField}: ${transformValue(currentResource[resourceField])} | `;
-    }, "");
+    const outputDiff = Object.keys(resourceDiff)
+      .reduce((previousText, resourceField) => {
+        return `${previousText}${transformValue(resourceDiff[resourceField])},`;
+      }, '')
+      .slice(0, -1);
 
-    console.log("---");
-    console.log(`Current ${name}: ${outputCurrent}`);
-    console.log(`${name} diff since beginning: ${outputDiff}`);
+    const outputCurrent = Object.keys(currentResource)
+      .reduce((previousText, resourceField) => {
+        return `${previousText}${transformValue(resourceDiff[resourceField])},`;
+      }, '')
+      .slice(0, -1);
+
+    // outputStream.write(`diff,"${now}",${outputDiff}\n`);
+    outputStream.write(`current,"${now}",${outputCurrent}\n`);
+    // console.log('---');
+    // console.log(`Current ${name}: ${outputCurrent}`);
+    // console.log(`${name} diff since beginning: ${outputDiff}`);
   }, interval);
 };
 
-const monitorAll = ({ interval = 10000, transformMemoryValue, transformCpuValue } = {}) => {
+export const monitorAll = ({ interval = 10000, transformMemoryValue, transformCpuValue } = {}) => {
   monitorMemory({ interval, transformMemoryValue });
   monitorCpu({ interval, transformCpuValue });
 };
 
-const monitorMemory = ({ interval = 5000, transformMemoryValue } = {}) => {
+export const monitorMemory = async ({ interval = 5000, transformMemoryValue } = {}) => {
   let transformValue = transformMemoryValue;
 
   if (!transformMemoryValue) {
-    transformValue = (value) => `${value / 1000000}Mb`;
+    transformValue = value => `${value / 1000000}Mb`;
   }
+
+  const outputStream = await getOutputStream({ type: 'mem' });
 
   const firstMemory = process.memoryUsage();
 
-  resourceMonitor({ interval, firstMeasure: firstMemory, processFunction: process.memoryUsage, transformValue });
+  resourceMonitor({ outputStream, interval, firstMeasure: firstMemory, processFunction: process.memoryUsage, transformValue });
 };
 
-const monitorCpu = ({ interval = 10000, transformCpuValue = (_) => _ } = {}) => {
+const monitorCpu = async ({ interval = 10000, transformCpuValue = _ => _ } = {}) => {
   const firstCpu = process.cpuUsage();
 
-  resourceMonitor({ interval, firstMeasure: firstCpu, processFunction: process.cpuUsage, transformValue: transformCpuValue });
+  const outputStream = await getOutputStream({ type: 'cpu' });
+  resourceMonitor({ outputStream, interval, firstMeasure: firstCpu, processFunction: process.cpuUsage, transformValue: transformCpuValue });
 };
 
-module.exports = {
-  monitorMemory,
-  monitorCpu,
-  monitorAll,
-};
