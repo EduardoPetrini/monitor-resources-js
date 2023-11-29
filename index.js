@@ -1,8 +1,6 @@
 import { getOutputStream } from './output.js';
 
 export const resourceMonitor = async ({ outputStream, interval = 1000, firstMeasure, processFunction, transformValue = _ => _ }) => {
-  const { name } = processFunction;
-
   let now = new Date().toLocaleString();
   const headers = Object.keys(firstMeasure)
     .reduce((previousText, resourceField) => {
@@ -16,9 +14,11 @@ export const resourceMonitor = async ({ outputStream, interval = 1000, firstMeas
     }, '')
     .slice(0, -1);
 
-  outputStream.write(`type,ts,${headers}\n`);
-  outputStream.write(`current,"${now}",${first}\n`);
+  let index = 1;
+  outputStream.write(`type,ts,index,${headers}\n`);
+  outputStream.write(`current,"${now}",${index},${first}\n`);
   setInterval(() => {
+    index = index + 1;
     const currentResource = processFunction();
     const resourceDiff = {
       ...Object.keys(firstMeasure).reduce((previousCount, resourceField) => {
@@ -43,37 +43,28 @@ export const resourceMonitor = async ({ outputStream, interval = 1000, firstMeas
       }, '')
       .slice(0, -1);
 
-    // outputStream.write(`diff,"${now}",${outputDiff}\n`);
-    outputStream.write(`current,"${now}",${outputCurrent}\n`);
-    // console.log('---');
-    // console.log(`Current ${name}: ${outputCurrent}`);
-    // console.log(`${name} diff since beginning: ${outputDiff}`);
+    outputStream.write(`current,"${now}",${index},${outputCurrent}\n`);
   }, interval);
 };
 
-export const monitorAll = ({ interval = 10000, transformMemoryValue, transformCpuValue } = {}) => {
-  monitorMemory({ interval, transformMemoryValue });
-  monitorCpu({ interval, transformCpuValue });
+export const monitorAll = ({ interval, outputDir, transformMemoryValue, transformCpuValue } = {}) => {
+  monitorMemory({ interval, outputDir, transformMemoryValue });
+  monitorCpu({ interval, outputDir, transformCpuValue });
 };
 
-export const monitorMemory = async ({ interval = 5000, transformMemoryValue } = {}) => {
+export const monitorMemory = async ({ interval = 5000, outputDir = 'rs-monitor', transformMemoryValue = value => value / 1000000 } = {}) => {
   let transformValue = transformMemoryValue;
 
-  if (!transformMemoryValue) {
-    transformValue = value => value / 1000000;
-  }
-
-  const outputStream = await getOutputStream({ type: 'mem' });
+  const outputStream = await getOutputStream({ type: 'mem', outputDir });
 
   const firstMemory = process.memoryUsage();
 
   resourceMonitor({ outputStream, interval, firstMeasure: firstMemory, processFunction: process.memoryUsage, transformValue });
 };
 
-const monitorCpu = async ({ interval = 10000, transformCpuValue = _ => _ } = {}) => {
+export const monitorCpu = async ({ interval = 10000, outputDir = 'rs-monitor', transformCpuValue = _ => _ } = {}) => {
   const firstCpu = process.cpuUsage();
 
-  const outputStream = await getOutputStream({ type: 'cpu' });
+  const outputStream = await getOutputStream({ type: 'cpu', outputDir });
   resourceMonitor({ outputStream, interval, firstMeasure: firstCpu, processFunction: process.cpuUsage, transformValue: transformCpuValue });
 };
-
