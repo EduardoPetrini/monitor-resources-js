@@ -1,5 +1,5 @@
 # JS Resource Monitor
-This package is meant to monitor the resources used by the JavaScript application.
+This npm package is designed to monitor the resources utilized by a JavaScript application. It captures resource metrics at specific intervals and stores the results in CSV format realtime.
 
 # Install
 `npm i monitor-resources-js`
@@ -31,9 +31,10 @@ monitorAll(options);
 ```
 
 # options
- - `interval`: in milliseconds to monitor and print the resource consumption: default 5000
- - `transformMemoryValue`: function to apply some extra calc or transformation on memory measurements: default `(value) => (value / 1000000) + "Mb"`
- - `transformCpuValue`: function to apply some extra calc or transformation on CPU measurements: default `(_) => _`
+  - `interval`: Time interval in milliseconds to monitor and log resource consumption (default: `5000`).
+  - `outputDir`: Output directory to save the CSV file with resource consumption (default: `rs-monitor`).
+  - `transformMemoryValue`: Function to apply additional calculations or transformations on memory measurements (default: `(value) => value / 1000000`).
+  - `transformCpuValue`: Function to apply additional calculations or transformations on CPU measurements (default: `(_) => _`).
 
 # Source
 [EduardoPetrini/monitor-resources-js](https://github.com/EduardoPetrini/monitor-resources-js)
